@@ -53,9 +53,9 @@ const readDir = async (dir) => {
  * @param {string} pathProcessed
  * @return {promise}
  */
-const grayScale = async (pathIn, pathOut) => {
-
-  fs.createReadStream(pathIn)
+const grayScale = (pathIn, pathOut) => {
+  return new Promise((resolve, reject) => {
+    fs.createReadStream(pathIn)
     .pipe(
       new PNG({
         filterType: 1,
@@ -76,10 +76,10 @@ const grayScale = async (pathIn, pathOut) => {
         }
       }
   
-      this.pack().pipe(fs.createWriteStream(pathOut));
+      this.pack().pipe(fs.createWriteStream(pathOut).on("close", () => resolve("done")));
     });
 
-    return "done"
+  });
 };
 
 module.exports = {
