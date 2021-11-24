@@ -10,6 +10,7 @@
 
 const unzipper = require("unzipper"),
   fs = require("fs"),
+  fsPromise = require("fs/promises")
   PNG = require("pngjs").PNG,
   path = require("path");
 
@@ -21,10 +22,9 @@ const unzipper = require("unzipper"),
  * @return {promise}
  */
 const unzip = (pathIn, pathOut) => {
-  fs.createReadStream('./myfile.zip')
-    .pipe(unzipper.Extract({ path: './files' }))
-    .promise()
-    ;
+  return fs.createReadStream(pathIn)
+      .pipe(unzipper.Extract({ path: pathOut }))
+      .promise()
 };
 
 /**
@@ -33,7 +33,17 @@ const unzip = (pathIn, pathOut) => {
  * @param {string} path
  * @return {promise}
  */
-const readDir = (dir) => {};
+const readDir = async (dir) => {
+  const files = await fsPromise.readdir(dir)
+  const filenames = []
+  files.forEach(file => {
+    const filename = path.basename(file)
+    if (path.extname(filename) === ".png") {
+      filenames.push(filename)
+    }
+  })
+  return filenames
+};
 
 /**
  * Description: Read in png file by given pathIn,
@@ -43,14 +53,13 @@ const readDir = (dir) => {};
  * @param {string} pathProcessed
  * @return {promise}
  */
-const grayScale = (pathIn, pathOut) => {
-  var fs = require("fs"),
-  PNG = require("pngjs").PNG;
- 
-  fs.createReadStream("in.png")
+const grayScale = async (pathIn, pathOut) => {
+
+  fs.createReadStream(pathIn)
     .pipe(
       new PNG({
-        filterType: 4,
+        filterType: 1,
+        colorType: 0
       })
     )
     .on("parsed", function () {
@@ -59,15 +68,18 @@ const grayScale = (pathIn, pathOut) => {
           var idx = (this.width * y + x) << 2;
   
           // invert color
-          this.data[idx] = 255 - this.data[idx];
-          this.data[idx + 1] = 255 - this.data[idx + 1];
-          this.data[idx + 2] = 255 - this.data[idx + 2];
+          const val = 0.299 * this.data[idx] + 0.587 * this.data[idx + 1] + 0.114 * this.data[idx + 2]; 
+          this.data[idx] = val; 
+          this.data[idx + 1] = val;
+          this.data[idx + 2] = val;
   
         }
       }
   
-      this.pack().pipe(fs.createWriteStream("out.png"));
+      this.pack().pipe(fs.createWriteStream(pathOut));
     });
+
+    return "done"
 };
 
 module.exports = {
